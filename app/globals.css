@@ -163,4 +163,5 @@ body{font-family:Nunito,'Segoe UI',Arial,sans-serif;background:radial-gradient(e
   .mobile-team{display:flex;align-items:center;gap:7px}.mobile-team .bird-art{width:62px;height:62px;margin:0}
   .mobile-launch>button{display:flex;align-items:center;justify-content:center;gap:12px;min-height:61px;min-width:220px;padding:10px 25px;border:2px solid #fff3bd;border-radius:15px;background:linear-gradient(180deg,#ffcf56,#ffb836);box-shadow:0 4px 0 #c9952f;color:#765013;font-family:Nunito,sans-serif;font-size:25px;font-weight:900}
 }
+.game-controls .shoot-control.shot-open{background:linear-gradient(180deg,#20b395,#138b84);border-color:#fff0a6}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}

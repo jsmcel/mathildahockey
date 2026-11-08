@@ -20,6 +20,7 @@ export type Snapshot = {
   possession: boolean;
   skill: string;
   queued: boolean;
+  shotHint: string;
 };
 type Player = {
   x: number;
@@ -29,6 +30,8 @@ type Player = {
   frozen: number;
   vx?: number;
   vy?: number;
+  lane?: number;
+  chooseLaneAt?: number;
 };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
@@ -42,12 +45,13 @@ export class Hockey {
     theirs: 0,
     active: 0,
     power: 100,
-    message: "Patino y apunto solo. ¡Toca TIRAR, Jorge!",
+    message: "Pasa para acercarte y busca tu tiro. Yo patino y apunto.",
     goal: false,
     finished: false,
     possession: true,
     skill: "",
     queued: false,
+    shotHint: "Acércate o pasa",
   };
   paused = false;
   direction = { x: 0, y: 0 };
@@ -79,6 +83,12 @@ export class Hockey {
   lastShooter = "";
   pendingShot: "normal" | "special" | null = null;
   nextPlayerShot = 0;
+  keeperPositions = [280, 280];
+  keeperHold: { team: number; until: number } | null = null;
+  shotTeam = -1;
+  setupUntil = 0;
+  shotStarted = 0;
+  lastGoalTeam = -1;
   constructor(
     public canvas: HTMLCanvasElement,
     public team: BirdId[],
@@ -122,7 +132,7 @@ export class Hockey {
       vx: 0,
       vy: 0,
       owner: 0,
-      lock: 2.5,
+      lock: this.rival === 0 ? 2.3 : 1.1,
       super: false,
     });
     this.target = null;
@@ -132,11 +142,29 @@ export class Hockey {
     this.puckTrail = [];
     this.burst = null;
     this.pendingShot = null;
+    this.keeperHold = null;
+    this.keeperPositions = [280, 280];
+    this.shotTeam = -1;
+    this.setupUntil = 0;
+    if (this.lastGoalTeam === 0 && this.rival > 0) {
+      this.puck.owner = 3;
+      this.puck.x = this.players[3].x - PUCK_OFFSET_X;
+      this.puck.y = this.players[3].y + PUCK_OFFSET_Y;
+    }
   }
   emit() {
     this.state.possession = this.puck.owner >= 0 && this.puck.owner < 3;
     this.state.skill = birdById(this.players[this.state.active]?.id).skill;
     this.state.queued = this.pendingShot !== null;
+    const carrier = this.players[this.puck.owner];
+    this.state.shotHint =
+      !carrier || carrier.team !== 0
+        ? "Voy a por el disco"
+        : carrier.x < 620 || carrier.y < 200 || carrier.y > 335
+          ? "Acércate o pasa"
+          : this.blockedLane(carrier)
+            ? "Pasa a un amigo"
+            : "¡Buen tiro!";
     this.onUpdate({ ...this.state });
   }
   setActive(i: number) {
@@ -165,9 +193,10 @@ export class Hockey {
         start: this.clock,
       };
       this.puck.owner = next;
-      this.puck.lock = 2;
+      this.puck.lock = 0.85;
+      this.setupUntil = this.clock + 2;
       this.state.active = next;
-      this.state.message = `¡Pase a ${birdById(this.players[next].id).name}!`;
+      this.state.message = `¡Pase a ${birdById(this.players[next].id).name}! Busca un hueco.`;
       this.tone(460, 0.08);
     } else {
       this.state.active = (this.state.active + 1) % 3;
@@ -179,6 +208,12 @@ export class Hockey {
   shoot(special = false) {
     if (this.paused || this.goalWait || this.state.finished) return;
     if (this.clock < this.nextPlayerShot) return;
+    if (this.keeperHold) {
+      this.pendingShot = special ? "special" : "normal";
+      this.state.message = "El portero la tiene. Prepárate para recuperar.";
+      this.emit();
+      return;
+    }
     const p = this.players[this.state.active];
     if (this.puck.owner !== this.state.active) {
       if (this.puck.owner >= 0 && this.puck.owner < 3) {
@@ -190,9 +225,9 @@ export class Hockey {
       ) {
         // Repeated taps must never grab our own shot out of the air.
         return;
-      } else if (distance(p, this.puck) < 105) {
+      } else if (this.puck.owner < 0 && distance(p, this.puck) < 60) {
         this.puck.owner = this.state.active;
-        this.puck.lock = 2;
+        this.puck.lock = 0.7;
       } else {
         // Remember the tap and keep following the moving puck, not its old position.
         this.pendingShot = special ? "special" : "normal";
@@ -210,19 +245,25 @@ export class Hockey {
     this.lastShooter = shooter.id;
     this.pendingShot = null;
     this.nextPlayerShot = this.clock + 0.65;
-    const goalY = this.keeperY(1) > 280 ? 239 : 321;
+    this.shotTeam = 0;
+    this.shotStarted = this.clock;
+    const goalY = this.keeperY(1) > 280 ? 222 : 338;
     const power = def.power * (special ? 1.25 : 0.86);
     this.puck.owner = -1;
     this.puck.x = shooter.x + PUCK_OFFSET_X;
     this.puck.y = shooter.y + PUCK_OFFSET_Y;
     const aimY = goalY - this.puck.y;
-    const aimX = 970 - this.puck.x;
+    const aimX = 947 - this.puck.x;
     const aimLength = Math.hypot(aimX, aimY);
     this.puck.vx = (aimX / aimLength) * power;
     this.puck.vy = (aimY / aimLength) * power;
     this.puck.lock = 0.28;
     this.puck.super = special;
-    this.state.message = special ? `¡${def.skill}!` : "¡Buen tiro, Jorge!";
+    this.state.message = special
+      ? `¡${def.skill}!`
+      : shooter.x < 590
+        ? "Tiro lejano. Con un pase puedes acercarte más."
+        : "¡Buen tiro, Jorge!";
     this.tone(special ? 620 : 360, 0.13);
     this.emit();
   }
@@ -236,6 +277,12 @@ export class Hockey {
       return;
     const player = this.players[this.state.active];
     const id = player.id;
+    if (this.keeperHold && ["bomb", "blues"].includes(id)) {
+      this.state.message =
+        "El portero la tiene. Guarda ese poder para la salida.";
+      this.emit();
+      return;
+    }
     if (
       ["matilda", "red"].includes(id) &&
       (this.clock < this.nextPlayerShot ||
@@ -248,9 +295,14 @@ export class Hockey {
       this.emit();
       return;
     }
-    if (["matilda", "red"].includes(id) && distance(player, this.puck) < 105) {
+    if (
+      ["matilda", "red"].includes(id) &&
+      !this.keeperHold &&
+      this.puck.owner < 0 &&
+      distance(player, this.puck) < 60
+    ) {
       this.puck.owner = this.state.active;
-      this.puck.lock = 2;
+      this.puck.lock = 0.7;
     }
     if (
       ["matilda", "red"].includes(id) &&
@@ -326,6 +378,7 @@ export class Hockey {
     if (this.goalWait) return;
     if (team === 0) this.state.ours++;
     else this.state.theirs++;
+    this.lastGoalTeam = team;
     this.state.goal = true;
     this.pendingShot = null;
     this.goalWait = 2.7;
@@ -336,7 +389,6 @@ export class Hockey {
       team === 0
         ? "¡Gooool! ¡Bien jugado, Jorge!"
         : "Gol de los piggies. ¡Vamos a por el siguiente!";
-    this.state.power = 100;
     if (team === 0) this.tone(660, 0.35);
     this.emit();
   }
@@ -358,7 +410,7 @@ export class Hockey {
         if (this.goalWait <= 0) {
           this.goalWait = 0;
           this.reset();
-          this.state.message = "¡Seguimos! Toca o mantén TIRAR →";
+          this.state.message = "¡Seguimos! Pasa, acércate y busca tu tiro →";
           this.emit();
         }
       }
@@ -367,15 +419,16 @@ export class Hockey {
     if (this.state.finished) return;
     this.clock += dt;
     this.puck.lock = Math.max(0, this.puck.lock - dt);
-    this.state.power = Math.min(100, this.state.power + dt * 6);
+    this.state.power = Math.min(100, this.state.power + dt * 4);
     const owner = this.puck.owner,
       active = this.players[this.state.active];
     const pace = this.options.slow ? 0.72 : 1;
     const positions = this.players.map((p) => ({ x: p.x, y: p.y }));
+    this.updateKeepers(dt);
     this.players.forEach((p, i) => {
       if (p.frozen > this.clock) return;
       const speed =
-        (p.team === 0 ? birdById(p.id).speed : 78 + this.rival * 17) *
+        (p.team === 0 ? birdById(p.id).speed : 116 + this.rival * 20) *
         pace *
         (i === this.state.active && this.boosted > this.clock ? 1.85 : 1);
       if (i === this.state.active) {
@@ -391,15 +444,10 @@ export class Hockey {
           this.move(p, this.target.x, this.target.y, speed, dt);
           if (distance(p, this.target) < 9) this.target = null;
         } else if (this.options.auto || this.pendingShot) {
-          if (owner === i)
-            this.move(
-              p,
-              790,
-              280 + Math.sin(this.clock * 0.45) * 70,
-              speed * 0.68,
-              dt,
-            );
-          else if (owner < 0 || owner >= 3)
+          if (owner === i) {
+            const route = this.dribbleRoute(p, i);
+            this.move(p, route.x, route.y, speed * 0.9, dt);
+          } else if (owner < 0 || owner >= 3)
             this.move(p, this.puck.x, this.puck.y, speed, dt);
           else
             this.move(
@@ -416,9 +464,11 @@ export class Hockey {
         } else if (owner >= 0 && owner < 3)
           this.move(
             p,
-            clamp(this.players[owner].x - 100 + (i === 1 ? 40 : 0), 100, 780),
-            i === 1 ? 155 : 410,
-            speed * 0.56,
+            clamp(this.players[owner].x + 125, 150, 830),
+            i === this.players.slice(0, 3).findIndex((_, j) => j !== owner)
+              ? 160
+              : 400,
+            speed * 0.8,
             dt,
           );
         else
@@ -431,15 +481,30 @@ export class Hockey {
           );
       } else {
         if (owner === i) {
-          this.move(p, 180, 280, speed * 0.9, dt);
-          if (p.x < 410 && this.clock > this.nextShot) {
-            this.nextShot = this.clock + 6;
+          this.move(
+            p,
+            175,
+            280 + (i === 4 ? -45 : i === 5 ? 45 : 0),
+            speed * 0.94,
+            dt,
+          );
+          if (
+            p.x < 215 + this.rival * 8 &&
+            this.clock > this.nextShot &&
+            !this.keeperHold
+          ) {
+            this.nextShot = this.clock + 3.5;
             this.puck.owner = -1;
-            this.puck.vx = -360;
-            this.puck.vy = (280 - p.y) * 1.1;
+            const gx = 30 - this.puck.x,
+              gy = (this.keeperY(0) > 280 ? 223 : 337) - this.puck.y,
+              len = Math.hypot(gx, gy);
+            this.puck.vx = (gx / len) * (510 + this.rival * 35);
+            this.puck.vy = (gy / len) * (510 + this.rival * 35);
             this.puck.lock = 0.35;
             this.puck.super = false;
             this.lastShooter = "pig";
+            this.shotTeam = 1;
+            this.shotStarted = this.clock;
           }
         } else {
           const chaser = this.players
@@ -450,11 +515,13 @@ export class Hockey {
                 : best,
             );
           if (p === chaser)
-            this.move(p, this.puck.x, this.puck.y, speed * 0.78, dt);
+            this.move(p, this.puck.x, this.puck.y, speed * 0.92, dt);
           else
             this.move(
               p,
-              owner >= 3 ? 460 : 650,
+              owner >= 3
+                ? clamp(this.players[owner].x - 110, 200, 750)
+                : clamp(this.puck.x + 130, 560, 845),
               i === 4 ? 165 : 395,
               speed * 0.6,
               dt,
@@ -466,7 +533,31 @@ export class Hockey {
       p.vx = (p.x - positions[i].x) / Math.max(dt, 0.001);
       p.vy = (p.y - positions[i].y) / Math.max(dt, 0.001);
     });
-    if (this.puck.owner >= 0) {
+    if (this.keeperHold) {
+      const team = this.keeperHold.team;
+      this.puck.x = team === 0 ? 100 : 900;
+      this.puck.y = this.keeperY(team);
+      this.puck.vx = 0;
+      this.puck.vy = 0;
+      if (this.clock >= this.keeperHold.until) {
+        const candidates = this.players
+          .map((p, i) => ({ p, i }))
+          .filter(({ p }) => p.team === team);
+        const receiver = candidates.reduce((best, other) =>
+          distance(other.p, this.puck) < distance(best.p, this.puck)
+            ? other
+            : best,
+        );
+        this.puck.owner = receiver.i;
+        this.puck.lock = 0.9;
+        this.keeperHold = null;
+        if (team === 0) this.state.active = receiver.i;
+        this.state.message =
+          team === 0
+            ? "¡Nuestro portero saca! Avanza con un pase."
+            : "Los piggies salen al ataque. ¡A defender!";
+      }
+    } else if (this.puck.owner >= 0) {
       const p = this.players[this.puck.owner];
       this.puck.x = p.x + (p.team === 0 ? PUCK_OFFSET_X : -PUCK_OFFSET_X);
       this.puck.y = p.y + PUCK_OFFSET_Y;
@@ -475,13 +566,13 @@ export class Hockey {
         const enemy = this.players.find(
           (p2) =>
             p2.team !== p.team &&
-            distance(p2, p) < (p2.team === 0 ? 60 : 29) &&
+            distance(p2, p) < (p2.team === 0 ? 43 : 37 + this.rival * 3) &&
             p2.frozen < this.clock,
         );
         if (enemy && !(p.team === 0 && this.protectedUntil > this.clock)) {
           this.puck.owner = this.players.indexOf(enemy);
-          this.puck.lock = enemy.team === 0 ? 2 : 1.2;
-          this.nextSteal = this.clock + 3;
+          this.puck.lock = enemy.team === 0 && this.rival === 0 ? 1.8 : 1;
+          this.nextSteal = this.clock + 1.1;
           if (enemy.team === 0) this.state.active = this.puck.owner;
           this.state.message =
             enemy.team === 0
@@ -493,6 +584,7 @@ export class Hockey {
     } else {
       this.puckTrail.push({ x: this.puck.x, y: this.puck.y });
       if (this.puckTrail.length > 14) this.puckTrail.shift();
+      const previousX = this.puck.x;
       this.puck.x += this.puck.vx * dt;
       this.puck.y += this.puck.vy * dt;
       const friction = Math.exp(-0.19 * dt);
@@ -514,41 +606,64 @@ export class Hockey {
         this.puck.x = clamp(this.puck.x, 55, 945);
         this.puck.vx *= -0.7;
       }
-      // The friendly keeper blocks slowly; piggy keepers can save ordinary shots.
-      if (
-        this.puck.vx < 0 &&
-        this.puck.x < 116 &&
-        Math.abs(this.puck.y - this.keeperY(0)) < 36
-      ) {
-        this.puck.vx = 250;
-        this.puck.lock = 0.35;
-        this.state.message = "¡Buena parada de nuestro portero!";
+      for (const team of [0, 1]) {
+        const plane = team === 0 ? 104 : 896;
+        const crosses =
+          team === 0
+            ? this.puck.vx < 0 && previousX >= plane && this.puck.x <= plane
+            : this.puck.vx > 0 && previousX <= plane && this.puck.x >= plane;
+        const reach = team === 0 ? 27 : 22 + this.rival * 5;
+        if (crosses && Math.abs(this.puck.y - this.keeperY(team)) < reach) {
+          this.keeperHold = { team, until: this.clock + 0.7 };
+          this.puck.vx = 0;
+          this.puck.vy = 0;
+          this.puck.super = false;
+          this.puck.owner = -1;
+          this.puck.lock = 0.4;
+          this.state.message =
+            team === 0
+              ? "¡Buena parada de nuestro portero!"
+              : "¡Parada de los piggies! Prueba más cerca o después de un pase.";
+          break;
+        }
       }
       if (
+        !this.keeperHold &&
+        !this.puck.lock &&
         !this.puck.super &&
-        this.puck.vx > 0 &&
-        this.puck.x > 885 &&
-        this.puck.x < 915 &&
-        Math.abs(this.puck.y - this.keeperY(1)) < 20 + this.rival * 3
+        this.shotTeam >= 0
       ) {
-        this.puck.vx = -220;
-        this.puck.vy += 85;
-        this.puck.lock = 0.45;
-        this.state.message = "¡El portero la para! Probamos otra vez.";
+        const blocker = this.players.find(
+          (p) =>
+            p.team !== this.shotTeam &&
+            p.frozen < this.clock &&
+            distance(p, this.puck) < 27,
+        );
+        if (blocker) {
+          this.puck.owner = this.players.indexOf(blocker);
+          this.puck.lock = 0.8;
+          this.shotTeam = -1;
+          if (blocker.team === 0) this.state.active = this.puck.owner;
+          this.state.message =
+            blocker.team === 0
+              ? "¡Disco recuperado!"
+              : "Un defensa bloquea el tiro. Busca un pase.";
+        }
       }
       if (
+        !this.keeperHold &&
         !this.puck.lock &&
         !this.puck.super &&
         Math.hypot(this.puck.vx, this.puck.vy) < 240
       ) {
         const catcher = this.players.find(
           (p) =>
-            distance(p, this.puck) < (p.team === 0 ? 66 : 34) &&
+            distance(p, this.puck) < (p.team === 0 ? 48 : 38) &&
             p.frozen < this.clock,
         );
         if (catcher) {
           this.puck.owner = this.players.indexOf(catcher);
-          this.puck.lock = catcher.team === 0 ? 2 : 1;
+          this.puck.lock = 0.9;
           if (catcher.team === 0) this.state.active = this.puck.owner;
         }
       }
@@ -568,12 +683,90 @@ export class Hockey {
       this.emit();
     }
   }
+  blockedLane(player: Player) {
+    const dx = 950 - player.x,
+      dy = 280 - player.y,
+      length = Math.hypot(dx, dy);
+    return this.players
+      .slice(3)
+      .some(
+        (p) =>
+          p.frozen < this.clock &&
+          p.x > player.x + 35 &&
+          p.x < 910 &&
+          Math.abs((p.x - player.x) * dy - (p.y - player.y) * dx) / length < 42,
+      );
+  }
+  dribbleRoute(player: Player, index: number) {
+    if (player.x > 680)
+      return { x: 815, y: (player.lane ?? player.y) < 270 ? 225 : 315 };
+    if (this.clock >= (player.chooseLaneAt ?? 0)) {
+      const aimX = Math.min(player.x + 180, 820);
+      const scores = [145, 280, 415]
+        .map((y) => {
+          const dx = aimX - player.x,
+            dy = y - player.y,
+            length = Math.hypot(dx, dy) || 1;
+          const opponents = this.players
+            .slice(3)
+            .filter(
+              (p) =>
+                p.frozen < this.clock && p.x > player.x - 35 && p.x < aimX + 50,
+            );
+          const clearance = opponents.length
+            ? Math.min(
+                ...opponents.map(
+                  (p) =>
+                    Math.abs((p.x - player.x) * dy - (p.y - player.y) * dx) /
+                    length,
+                ),
+              )
+            : 150;
+          return { y, score: clearance - Math.abs(y - player.y) * 0.17 };
+        })
+        .sort((a, b) => b.score - a.score);
+      player.lane = scores[0].y;
+      player.chooseLaneAt = this.clock + 1.4;
+    }
+    return {
+      x: 815,
+      y: player.lane ?? (index === 1 ? 145 : index === 2 ? 415 : 280),
+    };
+  }
+  updateKeepers(dt: number) {
+    for (const team of [0, 1]) {
+      let target = 280;
+      const toward = team === 0 ? this.puck.vx < -80 : this.puck.vx > 80;
+      const unreadable =
+        this.puck.super && this.lastShooter === "matilda" && this.puck.x < 810;
+      const reacted =
+        this.clock - this.shotStarted >=
+        (team === 0 ? 0.14 : [0.23, 0.14, 0.07][this.rival]);
+      if (
+        this.puck.owner < 0 &&
+        toward &&
+        !unreadable &&
+        !this.keeperHold &&
+        reacted
+      ) {
+        const plane = team === 0 ? 104 : 896;
+        target = clamp(
+          this.puck.y + ((plane - this.puck.x) * this.puck.vy) / this.puck.vx,
+          218,
+          342,
+        );
+      } else if (this.puck.owner >= 0)
+        target = clamp(this.players[this.puck.owner].y, 235, 325);
+      else if (toward) target = this.keeperPositions[team];
+      let speed = team === 0 ? 155 : 100 + this.rival * 42;
+      if (team === 1 && this.setupUntil > this.clock) speed *= 0.55;
+      const delta = target - this.keeperPositions[team];
+      this.keeperPositions[team] +=
+        Math.sign(delta) * Math.min(Math.abs(delta), speed * dt);
+    }
+  }
   keeperY(team: number) {
-    return (
-      280 +
-      Math.sin(this.clock * (team ? 1.1 : 0.7) + (team ? 2 : 0)) *
-        (team ? 51 : 34)
-    );
+    return this.keeperPositions[team];
   }
   frame = (now: number) => {
     const dt = Math.min((now - (this.last || now)) / 1000, 0.035);

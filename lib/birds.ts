@@ -5,7 +5,7 @@ export const birds = [
     color: "#e1f5fa",
     ink: "#21758c",
     skill: "Tiro huevo",
-    detail: "¡Un huevo imparable directo a portería!",
+    detail: "Un tiro huevo que sorprende al portero.",
     symbol: "egg",
     speed: 150,
     power: 660,

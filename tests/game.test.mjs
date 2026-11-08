@@ -81,7 +81,8 @@ test("all six abilities produce their own effect and share a rechargeable meter"
   }
   const g = game(["chuck", "red", "matilda"]);
   g.special();
-  for (let i = 0; i < 1100; i++) g.update(1 / 60);
+  for (const p of g.players.slice(3)) p.frozen = 100;
+  for (let i = 0; i < 1560; i++) g.update(1 / 60);
   assert.equal(g.state.power, 100);
   g.destroy();
 });
@@ -125,43 +126,125 @@ test("piggy goals count for the opponents and never count repeatedly during a go
   assert.equal(g.state.theirs, 1);
   g.destroy();
 });
-test("a single shot request recovers the opponents puck and shoots without a second tap", () => {
+test("a single shot request follows the opponents puck and fires when possession is recovered", () => {
   const g = game();
   g.puck.owner = 3;
   g.puck.x = g.players[3].x - 44;
   g.puck.y = g.players[3].y + 29;
   g.shoot();
   assert.equal(g.state.queued, true);
-  for (let i = 0; i < 60 * 18 && !g.state.ours; i++) g.update(1 / 60);
-  assert.equal(g.state.ours, 1);
+  for (
+    let i = 0;
+    i < 60 * 18 && (!g.lastShooter || g.lastShooter === "pig");
+    i++
+  )
+    g.update(1 / 60);
+  assert.ok(g.lastShooter && g.lastShooter !== "pig");
   assert.equal(g.state.queued, false);
   g.destroy();
 });
 test("one nearby shot tap recovers the puck and fires immediately; extra taps do not snatch the shot back", () => {
   const g = game();
-  Object.assign(g.puck, { owner: -1, x: 390, y: 280, vx: 0, vy: 0 });
+  Object.assign(g.puck, { owner: -1, x: 375, y: 280, vx: 0, vy: 0 });
   g.shoot();
   assert.equal(g.puck.owner, -1);
   assert.ok(g.puck.vx > 0);
-  for (let i = 0; i < 70 && !g.state.goal; i++) {
+  for (let i = 0; i < 18 && !g.state.goal; i++) {
     g.shoot();
     g.update(1 / 60);
   }
   assert.equal(g.puck.owner, -1);
-  assert.ok(g.puck.x > 850 || g.state.goal);
+  assert.ok(g.puck.x > 480);
   g.destroy();
 });
-test("three goals can be reached using only the ordinary shoot control against every piggy team", () => {
+test("repeated long-range shooting no longer wins a match automatically", () => {
   for (let rival = 0; rival < 3; rival++) {
     const g = game(["matilda", "red", "chuck"], rival);
     for (let frame = 0; frame < 60 * 35 && !g.state.finished; frame++) {
       if (frame % 42 === 0) g.shoot();
       g.update(1 / 60);
     }
-    assert.equal(g.state.ours, 3, `opponent ${rival}`);
-    assert.equal(g.state.finished, true);
+    assert.ok(g.state.ours < 3, `opponent ${rival}`);
     g.destroy();
   }
+});
+
+test("long shots can be saved while an unobstructed close shot can score", () => {
+  const far = game(["matilda", "red", "chuck"], 1),
+    near = game(["matilda", "red", "chuck"], 1);
+  for (const g of [far, near])
+    for (const p of g.players.slice(3)) p.frozen = 100;
+  near.players[0].x = 800;
+  near.players[0].y = 270;
+  near.keeperPositions[1] = 270;
+  far.shoot();
+  near.shoot();
+  for (let i = 0; i < 180; i++) {
+    far.update(1 / 60);
+    if (!near.state.goal) near.update(1 / 60);
+  }
+  assert.equal(far.state.ours, 0);
+  assert.equal(near.state.ours, 1);
+  far.destroy();
+  near.destroy();
+});
+test("passing and selecting close chances can win a contested normal match", () => {
+  const g = game(["matilda", "red", "chuck"], 1);
+  let nextAction = 0,
+    passes = 0;
+  for (let frame = 0; frame < 60 * 120 && !g.state.finished; frame++) {
+    if (g.clock >= nextAction && !g.goalWait) {
+      nextAction = g.clock + 0.7;
+      const owner = g.puck.owner,
+        p = g.players[owner];
+      if (p?.team === 0) {
+        const pressure = Math.min(
+          ...g.players.slice(3).map((e) => Math.hypot(e.x - p.x, e.y - p.y)),
+        );
+        if (
+          p.x > 640 &&
+          p.y > 200 &&
+          p.y < 335 &&
+          (!g.blockedLane(p) || p.x > 790)
+        )
+          g.shoot();
+        else if (pressure < 160) {
+          const receiver = g.players
+            .slice(0, 3)
+            .map((a, i) => ({
+              i,
+              a,
+              space: Math.min(
+                ...g.players
+                  .slice(3)
+                  .map((e) => Math.hypot(e.x - a.x, e.y - a.y)),
+              ),
+            }))
+            .filter((a) => a.i !== owner && a.a.x > p.x - 35 && a.space > 60)
+            .sort((a, b) => b.a.x + b.space * 0.4 - (a.a.x + a.space * 0.4))[0];
+          if (receiver) {
+            g.pass(receiver.i);
+            passes++;
+          }
+        }
+      }
+    }
+    g.update(1 / 60);
+  }
+  assert.equal(g.state.ours, 3);
+  assert.ok(g.state.theirs > 0);
+  assert.ok(passes > 0);
+  g.destroy();
+});
+test("goals preserve ability charge and the opposition restarts after our goal", () => {
+  const g = game(["matilda", "red", "chuck"], 1);
+  g.state.power = 22;
+  g.goal(0);
+  assert.equal(g.state.power, 22);
+  g.update(3);
+  assert.equal(g.puck.owner, 3);
+  assert.equal(g.state.power, 22);
+  g.destroy();
 });
 test("requesting an attacking power during an existing shot never wastes the charge", () => {
   const g = game();

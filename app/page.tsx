@@ -41,18 +41,18 @@ const defaults: Options = {
 const rivals = [
   {
     name: "Piggies del hielo",
-    tag: "Muy fácil",
-    description: "Patinan despacito. Ideal para empezar.",
+    tag: "Aprender",
+    description: "Un rival suave para practicar pases y tiros.",
   },
   {
     name: "Cascos verdes",
-    tag: "Fácil",
-    description: "Un poquito más rápidos sobre el hielo.",
+    tag: "Partido",
+    description: "Defienden, paran y salen al ataque. ¡Busca un hueco!",
   },
   {
     name: "El equipo del rey",
-    tag: "Un reto",
-    description: "El rey cerdito también quiere jugar.",
+    tag: "Desafío",
+    description: "Presionan más y su portero reacciona rápido.",
   },
 ];
 function Bird({
@@ -188,7 +188,7 @@ function Modal({
 }
 export default function HomePage() {
   const [team, setTeam] = useState<BirdId[]>(["matilda", "red", "chuck"]),
-    [rival, setRival] = useState(0),
+    [rival, setRival] = useState(1),
     [options, setOptions] = useState<Options>(defaults),
     [screen, setScreen] = useState<"team" | "game">("team"),
     [dialog, setDialog] = useState<"settings" | "help" | null>(null),
@@ -217,7 +217,10 @@ export default function HomePage() {
               ? saved.options.target
               : 3,
           });
-        if ([0, 1, 2].includes(saved.rival)) setRival(saved.rival);
+        if ([0, 1, 2].includes(saved.rival))
+          setRival(
+            saved.rival === 0 && !saved.balanceVersion ? 1 : saved.rival,
+          );
       }
     } catch {}
     setReady(true);
@@ -227,7 +230,7 @@ export default function HomePage() {
       try {
         localStorage.setItem(
           "jorge-hockey-v1",
-          JSON.stringify({ team, rival, options }),
+          JSON.stringify({ team, rival, options, balanceVersion: 1 }),
         );
       } catch {}
   }, [team, rival, options, ready]);
@@ -545,9 +548,7 @@ export default function HomePage() {
           <div className="setting-row">
             <div>
               <strong>Patinar automáticamente</strong>
-              <span>
-                Modo fácil: patina y apunta solo. Jorge solo toca TIRAR.
-              </span>
+              <span>Yo patino y apunto. Tú eliges cuándo tirar y pasar.</span>
             </div>
             <button
               className={`toggle ${options.auto ? "on" : ""}`}
@@ -648,8 +649,8 @@ export default function HomePage() {
             <div>
               <strong>Lleva el disco a la derecha →</strong>
               <p>
-                Tu pájaro patina y apunta solo. Toca o mantén TIRAR. También
-                puedes tocar la pista para tirar.
+                Tu pájaro patina y apunta solo. Acércate a la portería y busca
+                un hueco antes de tocar TIRAR. El portero puede parar los tiros.
               </p>
             </div>
           </div>
@@ -822,6 +823,7 @@ function Game({
       possession: true,
       skill: "Tiro huevo",
       queued: false,
+      shotHint: "Acércate o pasa",
     }),
     [paused, setPaused] = useState(false),
     [stick, setStick] = useState({ x: 0, y: 0 });
@@ -1056,7 +1058,7 @@ function Game({
         </div>
         <div className="action-controls">
           <button
-            className={`shoot-control ${snapshot.queued ? "shot-queued" : ""}`}
+            className={`shoot-control ${snapshot.queued ? "shot-queued" : snapshot.shotHint === "¡Buen tiro!" ? "shot-open" : ""}`}
             aria-label="Tirar a portería"
             onPointerDown={(e) => {
               if (paused || externalPause || heldShot.current !== null) return;
@@ -1078,7 +1080,7 @@ function Game({
             <Target size={31} />
             <strong>TIRAR</strong>
             <span>
-              {snapshot.queued ? "¡Voy a por el disco!" : "Toca o mantén"}
+              {snapshot.queued ? "¡Voy a por el disco!" : snapshot.shotHint}
             </span>
           </button>
           <button
@@ -1093,7 +1095,7 @@ function Game({
             <span>
               {snapshot.power >= 100
                 ? "¡Listo!"
-                : `${Math.ceil((100 - snapshot.power) / 6)} s`}
+                : `${Math.ceil((100 - snapshot.power) / 4)} s`}
             </span>
             <span className="charge-track">
               <span style={{ width: `${snapshot.power}%` }} />
@@ -1104,7 +1106,7 @@ function Game({
       <p className="game-footnote">
         <Heart size={14} />{" "}
         {options.auto
-          ? "Patina y apunta solo. Tú toca TIRAR."
+          ? "Busca un hueco. Pasa para acercarte; yo apunto."
           : "Mueve con el mando. El tiro apunta solo."}
       </p>
       {paused && !snapshot.finished && (

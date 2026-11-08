@@ -8,7 +8,7 @@ Elige tres pájaros y uno de los tres equipos de piggies. Pulsa **¡A jugar!**. 
 
 - **TIRAR** siempre hace lo mismo: apunta y dispara. Puedes tocarlo o mantenerlo pulsado. Si no tienes el disco, recuerda la pulsación, lo recupera y tira sin exigir otra pulsación.
 - **Toca el retrato de un compañero** para pasarle el disco. No hace falta otro botón de pase.
-- **SUPERPODER** activa la habilidad del jugador. Se recarga en unos 17 segundos de juego.
+- **SUPERPODER** activa la habilidad del jugador. Se recarga en unos 25 segundos de juego; los goles conservan la carga que queda.
 - En el modo fácil, tu pájaro patina y apunta solo; también puedes tocar la pista para tirar. El mando se muestra únicamente si desactivas «Patinar automáticamente» en «A tu ritmo».
 - En ordenador: flechas o WASD para mover; espacio para tirar; P para pasar; E para la habilidad; Esc para pausar.
 
@@ -16,9 +16,13 @@ La pista conserva sus proporciones al girar la pantalla. El renderizador y las c
 
 En tablets grandes, la partida aprovecha toda la pantalla: pista amplia y controles grandes a la derecha en horizontal; controles debajo en vertical. Los botones para tirar, usar el poder, pasar y pausar permanecen visibles sin desplazamiento. La selección de equipo incluye un botón de inicio fijo en pantallas táctiles grandes.
 
+El nivel inicial es **Partido** (Cascos verdes). **Aprender** ofrece más margen para practicar; **Desafío** presiona más y tiene un portero de reacción rápida. La ayuda para patinar y apuntar funciona en los tres niveles.
+
+Los porteros siguen la trayectoria del disco, paran los tiros que alcanzan y sacan para su equipo. Los defensas presionan y bloquean líneas. Acércate a la portería y pasa para abrir un hueco; el botón indica «Acércate o pasa», «Pasa a un amigo» o «¡Buen tiro!». En Partido y Desafío, los piggies reinician con el disco después de un gol de Jorge. Mantener TIRAR no garantiza ganar.
+
 | Pájaro | Habilidad |
 | --- | --- |
-| Mathilda | Tiro huevo: atraviesa las defensas hasta la portería. |
+| Mathilda | Tiro huevo: supera a los defensas y sorprende al portero. |
 | Red | Súper tiro: un disparo fuerte y preciso. |
 | Chuck | Velocidad: patina más rápido durante siete segundos. |
 | Bomb | Onda de aire: detiene a los rivales cercanos y recupera un disco cercano. |
