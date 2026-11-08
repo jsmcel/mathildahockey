@@ -14,6 +14,8 @@ Elige tres pájaros y uno de los tres equipos de piggies. Pulsa **¡A jugar!**. 
 
 La pista conserva sus proporciones al girar la pantalla. El renderizador y las coordenadas táctiles comparten la misma escala y los márgenes. El disco mantiene un tamaño mínimo de 15 píxeles en pantalla, borde blanco y posición fuera de los pies del jugador para que resulte fácil seguirlo.
 
+En tablets grandes, la partida aprovecha toda la pantalla: pista amplia y controles grandes a la derecha en horizontal; controles debajo en vertical. Los botones para tirar, usar el poder, pasar y pausar permanecen visibles sin desplazamiento. La selección de equipo incluye un botón de inicio fijo en pantallas táctiles grandes.
+
 | Pájaro | Habilidad |
 | --- | --- |
 | Mathilda | Tiro huevo: atraviesa las defensas hasta la portería. |
