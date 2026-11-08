@@ -1,5 +1,6 @@
 import type { Hockey } from "./hockey";
 import { birdById, birds } from "./birds";
+import { fitViewport, PUCK_OFFSET_X, PUCK_OFFSET_Y } from "./viewport";
 type Skater = Hockey["players"][number];
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 function rounded(
@@ -326,8 +327,12 @@ export function paintGame(g: Hockey) {
     canvas.width = width;
     canvas.height = height;
   }
-  ctx.setTransform(width / 1000, 0, 0, height / 560, 0, 0);
-  ctx.clearRect(0, 0, 1000, 560);
+  const fit = fitViewport(width, height);
+  const cssScale = fit.scale / dpr;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#174b6b";
+  ctx.fillRect(0, 0, width, height);
+  ctx.setTransform(fit.scale, 0, 0, fit.scale, fit.x, fit.y);
   // Arena is static: rasterize once instead of repainting hundreds of details per frame.
   if (!g.arena) {
     g.arena = document.createElement("canvas");
@@ -420,8 +425,8 @@ export function paintGame(g: Hockey) {
     const f = g.passFlight,
       t = clamp((g.clock - f.start) / 0.42, 0, 1),
       p = g.players[f.to];
-    px = f.x + (p.x + 29 - f.x) * t;
-    py = f.y + (p.y + 15 - f.y) * t - Math.sin(t * Math.PI) * 26;
+    px = f.x + (p.x + PUCK_OFFSET_X - f.x) * t;
+    py = f.y + (p.y + PUCK_OFFSET_Y - f.y) * t - Math.sin(t * Math.PI) * 26;
     ctx.strokeStyle = "#27a7c13b";
     ctx.lineWidth = 2;
     ctx.setLineDash([5, 7]);
@@ -432,9 +437,25 @@ export function paintGame(g: Hockey) {
     ctx.setLineDash([]);
     if (t >= 1) g.passFlight = null;
   }
-  ctx.fillStyle = "#153c5b30";
+  // The puck keeps a minimum 15 px footprint on small screens.
+  const puckRadius = Math.max(19, 7.5 / cssScale);
+  const edge = Math.max(3, 1.8 / cssScale);
+  ctx.fillStyle =
+    g.puck.owner >= 0 && g.puck.owner < 3 ? "#ffd05c70" : "#ffffff95";
   ctx.beginPath();
-  ctx.ellipse(px, py + 5, g.puck.super ? 17 : 13, 7, 0, 0, Math.PI * 2);
+  ctx.ellipse(
+    px,
+    py + 2,
+    puckRadius + 7,
+    puckRadius * 0.72 + 5,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+  ctx.fillStyle = "#153c5b60";
+  ctx.beginPath();
+  ctx.ellipse(px, py + 8, puckRadius + 2, puckRadius * 0.55, 0, 0, Math.PI * 2);
   ctx.fill();
   if (g.puck.super && g.lastShooter === "matilda") {
     ctx.save();
@@ -442,21 +463,45 @@ export function paintGame(g: Hockey) {
     ctx.rotate(g.clock * 4);
     ctx.fillStyle = "#fffbe5";
     ctx.strokeStyle = "#e3ad3b";
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = edge;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 11, 16, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, puckRadius * 0.8, puckRadius * 1.1, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
     ctx.restore();
   } else {
-    ctx.fillStyle = g.puck.super ? "#e4a529" : "#142b44";
+    ctx.fillStyle = g.puck.super ? "#d89218" : "#071421";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = edge;
     ctx.beginPath();
-    ctx.ellipse(px, py, g.puck.super ? 15 : 12, 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(px, py, puckRadius, puckRadius * 0.62, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = g.puck.super ? "#ffe898" : "#526f86";
+    ctx.stroke();
+    ctx.fillStyle = g.puck.super ? "#ffe898" : "#213a50";
     ctx.beginPath();
-    ctx.ellipse(px, py - 3, g.puck.super ? 14 : 11, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(
+      px,
+      py - 4,
+      puckRadius - 2,
+      puckRadius * 0.4,
+      0,
+      0,
+      Math.PI * 2,
+    );
     ctx.fill();
+    ctx.strokeStyle = g.puck.super ? "#fff3ae" : "#b9d5e6";
+    ctx.lineWidth = Math.max(2, 1 / cssScale);
+    ctx.beginPath();
+    ctx.ellipse(
+      px,
+      py - 4,
+      puckRadius - 6,
+      puckRadius * 0.24,
+      0,
+      Math.PI * 1.05,
+      Math.PI * 1.85,
+    );
+    ctx.stroke();
   }
   if (g.state.goal && !g.state.finished) {
     const win = g.state.message.startsWith("¡Goo");

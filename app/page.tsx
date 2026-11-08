@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { birds, birdById, birdSvg, type BirdId } from "../lib/birds";
 import { Hockey, type Options, type Snapshot } from "../lib/hockey";
+import { pointOnIce } from "../lib/viewport";
 const defaults: Options = {
   sound: false,
   auto: true,
@@ -112,6 +113,7 @@ function Modal({
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null),
+    backdropPointer = useRef<number | null>(null),
     closeRef = useRef(close);
   closeRef.current = close;
   useEffect(() => {
@@ -148,7 +150,23 @@ function Modal({
     };
   }, []);
   return (
-    <div className="modal-backdrop" onClick={close}>
+    <div
+      className="modal-backdrop"
+      onPointerDown={(event) => {
+        backdropPointer.current =
+          event.target === event.currentTarget ? event.pointerId : null;
+      }}
+      onPointerUp={(event) => {
+        const shouldClose =
+          backdropPointer.current === event.pointerId &&
+          event.target === event.currentTarget;
+        backdropPointer.current = null;
+        if (shouldClose) close();
+      }}
+      onPointerCancel={() => {
+        backdropPointer.current = null;
+      }}
+    >
       <div
         ref={ref}
         className="modal"
@@ -516,6 +534,7 @@ export default function HomePage() {
           externalPause={!!dialog}
           home={() => setScreen("team")}
           restart={start}
+          settings={() => setDialog("settings")}
         />
       )}
       {dialog === "settings" && (
@@ -526,7 +545,9 @@ export default function HomePage() {
           <div className="setting-row">
             <div>
               <strong>Patinar automáticamente</strong>
-              <span>Jorge se centra en tirar, pasar y los superpoderes.</span>
+              <span>
+                Modo fácil: patina y apunta solo. Jorge solo toca TIRAR.
+              </span>
             </div>
             <button
               className={`toggle ${options.auto ? "on" : ""}`}
@@ -627,8 +648,8 @@ export default function HomePage() {
             <div>
               <strong>Lleva el disco a la derecha →</strong>
               <p>
-                Tu pájaro patina solo. También puedes tocar la pista o usar el
-                mando para moverlo.
+                Tu pájaro patina y apunta solo. Toca o mantén TIRAR. También
+                puedes tocar la pista para tirar.
               </p>
             </div>
           </div>
@@ -637,8 +658,9 @@ export default function HomePage() {
             <div>
               <strong>Tira, pasa y usa tu superpoder</strong>
               <p>
-                TIRAR apunta a la portería. PASAR da el disco a otro amigo. El
-                botón de estrella activa la habilidad del pájaro.
+                Toca el retrato de un amigo para pasarle el disco. SUPERPODER
+                activa su habilidad. En «A tu ritmo» puedes elegir el mando para
+                patinar tú.
               </p>
             </div>
           </div>
@@ -774,6 +796,7 @@ function Game({
   externalPause,
   home,
   restart,
+  settings,
 }: {
   team: BirdId[];
   rival: number;
@@ -781,11 +804,13 @@ function Game({
   externalPause: boolean;
   home: () => void;
   restart: () => void;
+  settings: () => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     engine = useRef<Hockey | null>(null),
     pad = useRef<HTMLDivElement>(null),
-    pointer = useRef<number | null>(null);
+    pointer = useRef<number | null>(null),
+    heldShot = useRef<ReturnType<typeof setInterval> | null>(null);
   const [snapshot, setSnapshot] = useState<Snapshot>({
       ours: 0,
       theirs: 0,
@@ -796,6 +821,7 @@ function Game({
       finished: false,
       possession: true,
       skill: "Tiro huevo",
+      queued: false,
     }),
     [paused, setPaused] = useState(false),
     [stick, setStick] = useState({ x: 0, y: 0 });
@@ -804,6 +830,7 @@ function Game({
     const e = new Hockey(canvas.current, team, rival, options, setSnapshot);
     engine.current = e;
     return () => {
+      stopShooting();
       e.destroy();
       engine.current = null;
     };
@@ -814,6 +841,7 @@ function Game({
   useEffect(() => {
     engine.current?.pause(paused || externalPause);
     if (paused || externalPause) {
+      stopShooting();
       pointer.current = null;
       setStick({ x: 0, y: 0 });
     }
@@ -873,6 +901,13 @@ function Game({
     };
   }, [paused, externalPause]);
   const active = birdById(team[snapshot.active]);
+  useEffect(() => {
+    if (snapshot.finished) stopShooting();
+  }, [snapshot.finished]);
+  function stopShooting() {
+    if (heldShot.current !== null) clearInterval(heldShot.current);
+    heldShot.current = null;
+  }
   function padMove(event: React.PointerEvent) {
     if (pointer.current !== event.pointerId || !pad.current) return;
     const r = pad.current.getBoundingClientRect(),
@@ -903,6 +938,13 @@ function Game({
         </div>
         <button className="pause-button" onClick={() => setPaused(true)}>
           <Pause size={18} /> Pausa
+        </button>
+        <button
+          className="game-settings icon-button"
+          aria-label="A tu ritmo"
+          onClick={settings}
+        >
+          <Settings2 size={19} />
         </button>
       </div>
       <div className="scoreboard">
@@ -936,12 +978,17 @@ function Game({
           aria-label="Pista de hockey. Tu equipo ataca hacia la portería derecha. Usa los botones de abajo para jugar."
           onPointerDown={(e) => {
             if (paused || externalPause) return;
+            e.preventDefault();
             const rect = e.currentTarget.getBoundingClientRect();
-            if (engine.current)
-              engine.current.target = {
-                x: ((e.clientX - rect.left) / rect.width) * 1000,
-                y: ((e.clientY - rect.top) / rect.height) * 560,
-              };
+            const point = pointOnIce(
+              e.clientX - rect.left,
+              e.clientY - rect.top,
+              rect.width,
+              rect.height,
+            );
+            if (!point || !engine.current) return;
+            if (options.auto) engine.current.shoot();
+            else engine.current.target = point;
           }}
         />
         <div className="attack-label">
@@ -952,71 +999,86 @@ function Game({
         <span className="coach-dot" />
         {snapshot.message}
       </div>
-      <div className="game-controls">
-        <div className="movement-area">
-          <div
-            ref={pad}
-            className="joystick"
-            role="group"
-            aria-label="Mando táctil para patinar; también puedes usar las flechas del teclado"
-            onPointerDown={(e) => {
-              if (pointer.current !== null || paused || externalPause) return;
-              pointer.current = e.pointerId;
-              e.currentTarget.setPointerCapture(e.pointerId);
-              padMove(e);
-            }}
-            onPointerMove={padMove}
-            onPointerUp={release}
-            onPointerCancel={release}
-            onLostPointerCapture={release}
-          >
-            <span className="pad-arrow up">⌃</span>
-            <span className="pad-arrow down">⌄</span>
-            <span className="pad-arrow left">‹</span>
-            <span className="pad-arrow right">›</span>
-            <span
-              className="joystick-knob"
-              style={{ transform: `translate(${stick.x}px,${stick.y}px)` }}
+      <div
+        className={`game-controls ${options.auto ? "easy-controls" : "manual-controls"}`}
+      >
+        {!options.auto && (
+          <div className="movement-area">
+            <div
+              ref={pad}
+              className="joystick"
+              role="group"
+              aria-label="Mando táctil para patinar; también puedes usar las flechas del teclado"
+              onPointerDown={(e) => {
+                if (pointer.current !== null || paused || externalPause) return;
+                pointer.current = e.pointerId;
+                e.currentTarget.setPointerCapture(e.pointerId);
+                padMove(e);
+              }}
+              onPointerMove={padMove}
+              onPointerUp={release}
+              onPointerCancel={release}
+              onLostPointerCapture={release}
             >
-              <Move size={25} />
-            </span>
+              <span className="pad-arrow up">⌃</span>
+              <span className="pad-arrow down">⌄</span>
+              <span className="pad-arrow left">‹</span>
+              <span className="pad-arrow right">›</span>
+              <span
+                className="joystick-knob"
+                style={{ transform: `translate(${stick.x}px,${stick.y}px)` }}
+              >
+                <Move size={25} />
+              </span>
+            </div>
+            <span>Mueve para patinar</span>
           </div>
-          <span>
-            {options.auto ? "Patina solo · o muévelo tú" : "Mueve para patinar"}
-          </span>
-        </div>
-        <div className="game-lineup" aria-label="Elige tu jugador">
-          {team.map((id, i) => (
-            <button
-              key={id}
-              className={i === snapshot.active ? "active" : ""}
-              onClick={() => engine.current?.setActive(i)}
-              aria-label={`Jugar con ${birdById(id).name}`}
-              aria-pressed={i === snapshot.active}
-            >
-              <Bird id={id} />
-              <span>{birdById(id).name}</span>
-              {i === snapshot.active && <span className="active-player-dot" />}
-            </button>
-          ))}
+        )}
+        <div className="team-bench">
+          <span className="bench-label">Toca un amigo para pasar</span>
+          <div className="game-lineup" aria-label="Elige tu jugador">
+            {team.map((id, i) => (
+              <button
+                key={id}
+                className={i === snapshot.active ? "active" : ""}
+                onClick={() => engine.current?.setActive(i)}
+                aria-label={`Jugar con ${birdById(id).name}`}
+                aria-pressed={i === snapshot.active}
+              >
+                <Bird id={id} />
+                <span>{birdById(id).name}</span>
+                {i === snapshot.active && (
+                  <span className="active-player-dot" />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="action-controls">
           <button
-            className="pass-control"
-            onClick={() => engine.current?.pass()}
-          >
-            <ArrowRight size={23} />
-            <strong>PASAR</strong>
-            <span>Otro amigo</span>
-          </button>
-          <button
-            className="shoot-control"
-            onClick={() => engine.current?.shoot()}
+            className={`shoot-control ${snapshot.queued ? "shot-queued" : ""}`}
+            aria-label="Tirar a portería"
+            onPointerDown={(e) => {
+              if (paused || externalPause || heldShot.current !== null) return;
+              e.preventDefault();
+              e.currentTarget.setPointerCapture(e.pointerId);
+              engine.current?.shoot();
+              heldShot.current = setInterval(
+                () => engine.current?.shoot(),
+                700,
+              );
+            }}
+            onPointerUp={stopShooting}
+            onPointerCancel={stopShooting}
+            onLostPointerCapture={stopShooting}
+            onClick={(e) => {
+              if (e.detail === 0) engine.current?.shoot();
+            }}
           >
             <Target size={31} />
-            <strong>{snapshot.possession ? "TIRAR" : "RECUPERAR"}</strong>
+            <strong>TIRAR</strong>
             <span>
-              {snapshot.possession ? "¡A portería!" : "¡A por el disco!"}
+              {snapshot.queued ? "¡Voy a por el disco!" : "Toca o mantén"}
             </span>
           </button>
           <button
@@ -1026,7 +1088,8 @@ function Game({
             aria-label={`${active.skill}. ${snapshot.power < 100 ? "Cargando" : "Disponible"}`}
           >
             <SkillIcon id={active.id} size={25} />
-            <strong>{active.skill}</strong>
+            <strong>SUPERPODER</strong>
+            <span className="power-name">{active.skill}</span>
             <span>
               {snapshot.power >= 100
                 ? "¡Listo!"
@@ -1039,7 +1102,10 @@ function Game({
         </div>
       </div>
       <p className="game-footnote">
-        <Heart size={14} /> Cada intento cuenta. Juega a tu manera.
+        <Heart size={14} />{" "}
+        {options.auto
+          ? "Patina y apunta solo. Tú toca TIRAR."
+          : "Mueve con el mando. El tiro apunta solo."}
       </p>
       {paused && !snapshot.finished && (
         <Modal title="Un descansito" close={() => setPaused(false)}>

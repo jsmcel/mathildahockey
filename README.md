@@ -6,11 +6,13 @@ Juego de hockey sobre hielo en español para jugar desde el navegador del móvil
 
 Elige tres pájaros y uno de los tres equipos de piggies. Pulsa **¡A jugar!**. Tu equipo ataca hacia la derecha. No hay reloj: gana el primero en llegar a tres goles (o cinco, desde «A tu ritmo»).
 
-- **TIRAR** apunta a la portería. Si no tienes el disco, te ayuda a recuperarlo.
-- **PASAR** cambia al siguiente amigo. Tocar un retrato pasa a ese jugador.
-- El botón de habilidad activa el poder del jugador. Se recarga en unos 17 segundos de juego.
-- Tu pájaro patina solo al empezar. También puedes usar el mando táctil o tocar un punto de la pista.
+- **TIRAR** siempre hace lo mismo: apunta y dispara. Puedes tocarlo o mantenerlo pulsado. Si no tienes el disco, recuerda la pulsación, lo recupera y tira sin exigir otra pulsación.
+- **Toca el retrato de un compañero** para pasarle el disco. No hace falta otro botón de pase.
+- **SUPERPODER** activa la habilidad del jugador. Se recarga en unos 17 segundos de juego.
+- En el modo fácil, tu pájaro patina y apunta solo; también puedes tocar la pista para tirar. El mando se muestra únicamente si desactivas «Patinar automáticamente» en «A tu ritmo».
 - En ordenador: flechas o WASD para mover; espacio para tirar; P para pasar; E para la habilidad; Esc para pausar.
+
+La pista conserva sus proporciones al girar la pantalla. El renderizador y las coordenadas táctiles comparten la misma escala y los márgenes. El disco mantiene un tamaño mínimo de 15 píxeles en pantalla, borde blanco y posición fuera de los pies del jugador para que resulte fácil seguirlo.
 
 | Pájaro | Habilidad |
 | --- | --- |
