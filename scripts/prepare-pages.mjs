@@ -1,0 +1,11 @@
+import { cpSync, existsSync, rmSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root=path.resolve(fileURLToPath(new URL('..',import.meta.url)));
+const source=path.resolve(root,'dist');
+const target=path.resolve(root,'docs');
+if(target!==path.join(root,'docs')||!target.startsWith(root+path.sep)||!existsSync(path.join(source,'index.html')))throw Error('No se ha encontrado una compilación válida.');
+rmSync(target,{recursive:true,force:true});
+cpSync(source,target,{recursive:true});
+writeFileSync(path.join(target,'.nojekyll'),'');
+console.log('GitHub Pages preparado en docs/.');

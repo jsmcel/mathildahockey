@@ -1,0 +1,18 @@
+{
+  "name": "mathilda-hockey",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Hockey sobre hielo para Jorge, inspirado en Cold Justice.",
+  "engines": { "node": ">=22.13.0" },
+  "scripts": {
+    "dev": "vite --config vite.static.config.ts",
+    "build": "vite build --config vite.static.config.ts",
+    "postbuild": "node scripts/prepare-pages.mjs",
+    "preview": "vite preview --config vite.static.config.ts --host 0.0.0.0",
+    "test": "node --test tests/game.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": { "lucide-react": "1.31.0", "react": "19.2.6", "react-dom": "19.2.6" },
+  "devDependencies": { "@types/node": "22.19.19", "@types/react": "19.2.14", "@types/react-dom": "19.2.3", "@vitejs/plugin-react": "6.0.2", "esbuild": "0.28.0", "typescript": "5.9.3", "vite": "8.0.13" }
+}
