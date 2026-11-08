@@ -35,7 +35,9 @@ npm run typecheck
 npm run build
 ```
 
-React y TypeScript para la interfaz; Canvas 2D para la pista, la física y los jugadores. Dibujos SVG propios incluidos en el código. No necesita backend. `dist/` contiene todos los archivos necesarios para alojarlo. Las rutas relativas permiten servirlo en una subcarpeta de GitHub Pages.
+React y TypeScript para la interfaz; Canvas 2D para la pista, la física y los jugadores. Ilustración principal y atlas de personajes con transparencia, dibujos SVG propios para los piggies y la vista previa, y fuentes Nunito servidas localmente. El renderizador guarda la pista en una capa estática y anima los patinadores, reflejos, pases, tiro huevo y habilidades. El mando táctil permite mover y tirar a la vez. Arte y prompts en [ART.md](ART.md).
+
+No necesita backend. `dist/` contiene todos los archivos necesarios para alojarlo. Las rutas relativas permiten servirlo en una subcarpeta de GitHub Pages. La compilación completa se puede abrir en [jsmcel.github.io/mathildahockey](https://jsmcel.github.io/mathildahockey/).
 
 ## GitHub Pages
 
