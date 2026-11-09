@@ -1,35 +1,36 @@
-# Mathilda Hockey
+# Mathilda · Penaltis de hielo
 
-Juego de hockey sobre hielo en español para jugar desde el navegador del móvil, tableta u ordenador. Inspirado en **Cold Justice**, temporada 2, episodio 18 de Angry Birds Toons: [capítulo en el canal oficial](https://www.youtube.com/watch?v=L6ByDtffwCQ).
+Una tanda de penaltis en español para Jorge, para jugar desde el navegador de una tablet, móvil u ordenador. Inspirada en **Cold Justice**, temporada 2, episodio 18 de Angry Birds Toons: [capítulo en el canal oficial](https://www.youtube.com/watch?v=L6ByDtffwCQ).
 
-## Jugar
+**[Jugar en GitHub Pages](https://jsmcel.github.io/mathildahockey/)**
 
-Elige tres pájaros y uno de los tres equipos de piggies. Pulsa **¡A jugar!**. Tu equipo ataca hacia la derecha. No hay reloj: gana el primero en llegar a tres goles (o cinco, desde «A tu ritmo»).
+## Cómo se juega
 
-- **TIRAR** siempre hace lo mismo: apunta y dispara. Puedes tocarlo o mantenerlo pulsado. Si no tienes el disco, recuerda la pulsación, lo recupera y tira sin exigir otra pulsación.
-- **Toca el retrato de un compañero** para pasarle el disco. No hace falta otro botón de pase.
-- **SUPERPODER** activa la habilidad del jugador. Se recarga en unos 25 segundos de juego; los goles conservan la carga que queda.
-- En el modo fácil, tu pájaro patina y apunta solo; también puedes tocar la pista para tirar. El mando se muestra únicamente si desactivas «Patinar automáticamente» en «A tu ritmo».
-- En ordenador: flechas o WASD para mover; espacio para tirar; P para pasar; E para la habilidad; Esc para pausar.
+Elige tres lanzadores y un portero. El portero puede ser también uno de tus lanzadores. Elige entre Aprender, Partido y Desafío, y toca **¡A los penaltis!**.
 
-La pista conserva sus proporciones al girar la pantalla. El renderizador y las coordenadas táctiles comparten la misma escala y los márgenes. El disco mantiene un tamaño mínimo de 15 píxeles en pantalla, borde blanco y posición fuera de los pies del jugador para que resulte fácil seguirlo.
+- **Para tirar:** toca un hueco dentro de la portería. También puedes arrastrar para apuntar; el tiro sale al soltar dentro de la portería. Soltar fuera cancela el tiro.
+- **Para parar:** coloca al portero y toca **¡LISTO!**. Desliza de lado a lado por la pista para seguir el disco. No hace falta tocar el personaje ni mantener un mando. El portero se queda donde lo dejas y ajusta la altura automáticamente.
+- **Poderes:** toca la tarjeta para preparar el tiro especial o la parada especial. Puedes cancelar antes del lanzamiento. El poder del portero se puede activar antes o durante el tiro, incluso con otro dedo mientras lo mueves.
+- **SEGUIR:** después de cada tiro, el juego espera a que pulses el botón. Alternas entre tirar y parar durante cinco rondas. En caso de empate puedes jugar una ronda de desempate.
 
-En tablets grandes, la partida aprovecha toda la pantalla: pista amplia y controles grandes a la derecha en horizontal; controles debajo en vertical. Los botones para tirar, usar el poder, pasar y pausar permanecen visibles sin desplazamiento. La selección de equipo incluye un botón de inicio fijo en pantallas táctiles grandes.
+Hay **dos tiros especiales y dos paradas especiales para toda la tanda**, compartidos entre los personajes elegidos. Se consumen al usarlos; no se recargan después de un gol. Una ronda de desempate añade un uso de cada tipo, hasta un máximo de dos.
 
-El nivel inicial es **Partido** (Cascos verdes). **Aprender** ofrece más margen para practicar; **Desafío** presiona más y tiene un portero de reacción rápida. La ayuda para patinar y apuntar funciona en los tres niveles.
+| Pájaro    | Tiro especial                                     | Poder de portero                                                   |
+| --------- | ------------------------------------------------- | ------------------------------------------------------------------ |
+| Mathilda  | Huevo sorpresa: cambia de dirección al acercarse. | Nido protector: un escudo amplía su alcance.                       |
+| Red       | Cañonazo: tiro más rápido y difícil de bloquear.  | Muro rojo: extiende sus protecciones.                              |
+| Chuck     | Rayo amarillo: el disparo más rápido.             | Reflejos: ralentiza el disco para darte más tiempo.                |
+| Bomb      | Onda de tiro: aparta al portero rival.            | Onda de despeje: rechaza el disco cercano.                         |
+| Los Blues | Tres discos: dos señuelos despistan al portero.   | Triple defensa: dos compañeros cubren sus lados.                   |
+| Stella    | Burbuja flotante: la altura despista al portero.  | Burbuja atrapadiscos: atrapa un disco cercano antes de que llegue. |
 
-Los porteros siguen la trayectoria del disco, paran los tiros que alcanzan y sacan para su equipo. Los defensas presionan y bloquean líneas. Acércate a la portería y pasa para abrir un hueco; el botón indica «Acércate o pasa», «Pasa a un amigo» o «¡Buen tiro!». En Partido y Desafío, los piggies reinician con el disco después de un gol de Jorge. Mantener TIRAR no garantiza ganar.
+Aprender da más tiempo para parar y muestra una pista antes del tiro. Partido aumenta la reacción del portero y la velocidad de los tiros rivales. Desafío exige más precisión y rapidez. Los poderes conservan su funcionamiento en todos los niveles.
 
-| Pájaro | Habilidad |
-| --- | --- |
-| Mathilda | Tiro huevo: supera a los defensas y sorprende al portero. |
-| Red | Súper tiro: un disparo fuerte y preciso. |
-| Chuck | Velocidad: patina más rápido durante siete segundos. |
-| Bomb | Onda de aire: detiene a los rivales cercanos y recupera un disco cercano. |
-| Los Blues | Pase mágico: el equipo avanza con el disco. |
-| Stella | Burbuja: protege la posesión durante ocho segundos. |
+La portería mantiene sus proporciones al girar la pantalla. En horizontal, las acciones aparecen a la derecha; en vertical, debajo de la pista. El disco tiene borde blanco y una estela visible. No hay reloj ni avance automático entre turnos. El sonido empieza desactivado. La partida se pausa al cambiar de pestaña o perder el foco.
 
-Ritmo tranquilo y movimiento automático activados de inicio. Sonido desactivado. Sin destellos, compras, anuncios, cuentas, analítica ni servicios externos durante el juego. Las preferencias y el equipo se guardan exclusivamente en el navegador. La partida se pausa al cambiar de pestaña o perder el foco.
+En ordenador puedes usar el ratón o las flechas para apuntar o mover al portero, espacio o Intro para lanzar/iniciar/seguir, y Esc para pausar. Los botones también admiten teclado.
+
+Sin anuncios, compras, cuentas ni analítica. Las fuentes y el arte se sirven localmente; el equipo y las preferencias se guardan en el navegador.
 
 ## Desarrollo
 
@@ -43,12 +44,12 @@ npm run typecheck
 npm run build
 ```
 
-React y TypeScript para la interfaz; Canvas 2D para la pista, la física y los jugadores. Ilustración principal y atlas de personajes con transparencia, dibujos SVG propios para los piggies y la vista previa, y fuentes Nunito servidas localmente. El renderizador guarda la pista en una capa estática y anima los patinadores, reflejos, pases, tiro huevo y habilidades. El mando táctil permite mover y tirar a la vez. Arte y prompts en [ART.md](ART.md).
+React y TypeScript para la interfaz; Canvas 2D para la portería y las animaciones. `client.tsx` carga `app/penalties.tsx` y su CSS. `lib/shootout.ts` gestiona las fases, los tiros, las colisiones y los poderes; `lib/shootout-render.ts` dibuja la escena. `lib/penalty-powers.ts` describe las habilidades. Los archivos del modo anterior de hockey se conservan como referencia y no forman parte de la aplicación publicada.
 
-No necesita backend. `dist/` contiene todos los archivos necesarios para alojarlo. Las rutas relativas permiten servirlo en una subcarpeta de GitHub Pages. La compilación completa se puede abrir en [jsmcel.github.io/mathildahockey](https://jsmcel.github.io/mathildahockey/).
+Las pruebas del motor verifican la alternancia, los cinco turnos por equipo, el desempate, los poderes y su consumo, las paradas y las coordenadas táctiles. La comprobación en navegador usa emulación táctil; no sustituye una prueba en la tablet física de Jorge. Arte y prompts en [ART.md](ART.md).
 
-## GitHub Pages
+## Publicación
 
-`npm run build` también prepara `docs/` con la misma compilación y un archivo `.nojekyll`. En **Settings → Pages → Build and deployment**, selecciona **Deploy from a branch**, rama `main`, carpeta `/docs`. Para actualizar el juego, ejecuta las comprobaciones y `npm run build`, y sube el código junto con `docs/`.
+No necesita backend. `dist/` contiene el juego completo. Las rutas relativas permiten alojarlo en una subcarpeta. `npm run build` también copia la compilación a `docs/` con `.nojekyll`. GitHub Pages publica la rama `main`, carpeta `/docs`. Para actualizarlo, ejecuta las comprobaciones y la compilación, y sube el código junto con `docs/`.
 
-Juego personal de fans; no es un producto oficial de Rovio. Los nombres de personajes pertenecen a sus respectivos titulares. Las habilidades y la partida son una adaptación propia.
+Juego personal de fans; no es un producto oficial de Rovio. Los nombres de personajes pertenecen a sus respectivos titulares. Las habilidades y la tanda son una adaptación propia.
